@@ -1,0 +1,40 @@
+name: Build APK
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git python3-pip ccache libncursesw5 libffi-dev libssl-dev zlib1g-dev python3-setuptools
+          pip install --upgrade pip
+          pip install buildozer kivy
+          
+      - name: Build with Buildozer
+        run: |
+          # إنشاء ملف إعدادات افتراضي إذا لم يكن موجوداً
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+            sed -i 's/# title = My Application/title = TCP Proxy/g' buildozer.spec
+            sed -i 's/# package.name = myapp/title = tcpproxy/g' buildozer.spec
+            sed -i 's/# package.domain = org.test/package.domain = org.proxy/g' buildozer.spec
+            sed -i 's/# source.include_exts = py,png,jpg,kv,atlas/source.include_exts = py,png,jpg,kv,atlas,zip/g' buildozer.spec
+            sed -i 's/# requirements = python3,kivy/requirements = python3,kivy/g' buildozer.spec
+          fi
+          buildozer -v android debug
+          
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug
+          path: bin/*.apk
